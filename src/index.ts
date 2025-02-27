@@ -2,6 +2,7 @@ import 'dotenv/config'
 import { Client, GatewayIntentBits } from 'discord.js'
 
 import { appConfig } from '../config'
+import { initBacklog } from './backlog'
 import { onMessageCreate } from './message-create'
 import { onMessageDelete } from './message-delete'
 import { onMessageUpdate } from './message-update'
@@ -31,6 +32,7 @@ const client = new Client({
 
 client.once('ready', (c) => {
   console.info(`Logged in as ${c.user.tag}`)
+  initBacklog(c, mediaModules)
   c.on('messageCreate', (message) => onMessageCreate(c, message, mediaModules))
   c.on('messageDelete', (message) => onMessageDelete(c, message, mediaModules))
   c.on('messageUpdate', (oldMessage, newMessage) => onMessageUpdate(c, oldMessage, newMessage, mediaModules))
