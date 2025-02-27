@@ -1,4 +1,4 @@
-import { Client, Message } from "discord.js";
+import { Client, Collection, GuildChannel, GuildTextBasedChannel, Message } from "discord.js";
 import { MediaModule } from "./types";
 import { validateSubmissionMediaSources } from "./message-create";
 import { debugLog } from "./logger";
@@ -34,9 +34,44 @@ export const initBacklog = async (
       continue;
     }
 
+    if (channel.isDMBased()) {
+      console.warn(`${debugTag} Channel is DM-based`);
+      continue;
+    }
+
     debugLog(`[${debugTag}/backlog] Checking latest ${checkLatest} messages`);
 
-    const messages = await channel.messages.fetch({ limit: checkLatest });
+    const chunkFetchMessages = async (channel: GuildTextBasedChannel, limit: number) => {
+      const messages: Message[] = [];
+      let lastId: string | undefined = undefined;
+      let fetchRemaining = limit;
+
+      while (true) {
+        const fetchNow = Math.min(fetchRemaining, 100);
+        fetchRemaining -= fetchNow;
+
+        const fetchedMessages: Collection<string, Message<true>>
+          = await channel.messages.fetch({
+            limit: fetchNow,
+            before: lastId ?? undefined
+          });
+
+        if (fetchedMessages.size === 0) {
+          break;
+        }
+
+        lastId = fetchedMessages.lastKey();
+        messages.push(...fetchedMessages.values());
+
+        if (fetchRemaining <= 0) {
+          break;
+        }
+      }
+
+      return messages;
+    }
+
+    const messages = await chunkFetchMessages(channel, checkLatest);
 
     for await (const message of messages.values()) {
       // Clean bot message
