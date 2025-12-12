@@ -1,5 +1,6 @@
 services:
   client:
+    container_name: my_client_app
     build:
       context: .
       dockerfile: Dockerfile
