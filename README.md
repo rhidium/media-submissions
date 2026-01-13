@@ -2,6 +2,8 @@
 
 Media Submissions is a Discord bot that allows you to configure fully automatic, and user-driven, media of the week/month channels.
 
+> ⚠️ **IMPORTANT:** This project is being recreated using the Rhidium framework. While it is perfectly usable in it's current state, the next major update will bring significant improvements and optimizations.
+
 > This project was funded and open-sourced by [DayZ The Lab](https://dayzthelab.com).
 
 ## ❔ How does it work?
