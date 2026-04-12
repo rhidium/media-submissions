@@ -2,7 +2,7 @@ import { Client, Collection, GuildChannel, GuildTextBasedChannel, Message } from
 import { MediaModule } from "./types";
 import { honorSubmissionQuantityLimits, validateSubmissionMediaSources } from "./message-create";
 import { debugLog } from "./logger";
-import { prisma } from "./prisma";
+import { getCurrentStartEnd, prisma } from "./prisma";
 import { buildPlaceholders, replacePlaceholders } from "./placeholders";
 
 export const initBacklog = async (
@@ -22,7 +22,6 @@ export const initBacklog = async (
       quantities,
       votingEmojis,
       submissionThread,
-      backlogCheckLatest: checkLatest,
     } = mediaModule;
     const debugTag = `[${mediaModule.name}/backlog]`;
     const channel = client.channels.cache.get(mediaModule.submissionsChannelId);
@@ -48,21 +47,27 @@ export const initBacklog = async (
       continue;
     }
 
-    debugLog(`[${debugTag}/backlog] Checking latest ${checkLatest} messages`);
+    debugLog(`[${debugTag}/backlog] Fetching backlog submissions...`);
 
-    const chunkFetchMessages = async (channel: GuildTextBasedChannel, limit: number) => {
+    const { currStart: currentPeriodStart } = getCurrentStartEnd(
+      mediaModule.cronOutputSubmission,
+      mediaModule.cronTimezone,
+    );
+
+    debugLog(`${debugTag} Calculated period start: ${currentPeriodStart.toISOString()}`);
+
+    const chunkFetchMessages = async (channel: GuildTextBasedChannel, periodStart: Date) => {
       const messages: Message<true>[] = [];
       let lastId: string | undefined = undefined;
-      let fetchRemaining = limit;
+      let reachedPeriodBoundary = false;
 
       while (true) {
-        const fetchNow = Math.min(fetchRemaining, 100);
-        fetchRemaining -= fetchNow;
+        const fetchNow = 100; // Max allowed by Discord API
 
         const fetchedMessages: Collection<string, Message<true>>
           = await channel.messages.fetch({
             limit: fetchNow,
-            before: lastId ?? undefined
+            before: lastId ?? undefined,
           });
 
         if (fetchedMessages.size === 0) {
@@ -70,17 +75,25 @@ export const initBacklog = async (
         }
 
         lastId = fetchedMessages.lastKey();
-        messages.push(...fetchedMessages.values());
 
-        if (fetchRemaining <= 0) {
+        for (const fetchedMessage of fetchedMessages.values()) {
+          if (fetchedMessage.createdAt.getTime() < periodStart.getTime()) {
+            reachedPeriodBoundary = true;
+            continue;
+          }
+
+          messages.push(fetchedMessage);
+        }
+
+        if (reachedPeriodBoundary) {
           break;
         }
       }
-
+      
       return messages;
     }
 
-    const messages = await chunkFetchMessages(channel, checkLatest);
+    const messages = await chunkFetchMessages(channel, currentPeriodStart);
 
     for await (const message of messages.values()) {
       const author = message.author;

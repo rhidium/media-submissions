@@ -50,6 +50,10 @@ export const initMediaModule = async (
       debugLog(`${debugTag} Output channel not text based`);
       return;
     }
+    if (outputChannel.isDMBased()) {
+      debugLog(`${debugTag} Output channel not in guild`);
+      return;
+    }
 
     const data = await prisma.submission.findMany({
       where: {

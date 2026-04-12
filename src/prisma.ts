@@ -1,22 +1,22 @@
 import { PrismaClient } from '@prisma/client';
-import { CronJob } from 'cron';
+import { CronExpressionParser } from 'cron-parser';
 import { appConfig } from '../config';
 
 export const prisma = new PrismaClient();
 
 export const getCurrentStartEnd = (cronExpression: string, cronTimezone: string) => {
-  const ghostJob = new CronJob(
-    cronExpression,
-    () => {},
-    null,
-    false,
-    cronTimezone,
-  );
+  const now = new Date();
+  const currentPeriodStartExpression = CronExpressionParser.parse(cronExpression, {
+    currentDate: now,
+    tz: cronTimezone,
+  });
+  const currentPeriodEndExpression = CronExpressionParser.parse(cronExpression, {
+    currentDate: now,
+    tz: cronTimezone,
+  });
 
-  const nextDates = ghostJob.nextDates(2);
-  const diff = nextDates[1].toJSDate().getTime() - nextDates[0].toJSDate().getTime();
-  const currStart = new Date(nextDates[0].toJSDate().getTime() - diff);
-  const currEnd = nextDates[0].toJSDate();
+  const currStart = currentPeriodStartExpression.prev().toDate();
+  const currEnd = currentPeriodEndExpression.next().toDate();
 
   return {
     currStart,

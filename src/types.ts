@@ -97,6 +97,4 @@ export type MediaModule = {
   winningSubmissionThread: ThreadConfig;
   /** Should other reactions be automatically removed on submissions? */
   blockOtherReactions: boolean;
-  /** The amount of messages should should be check on boot/startup */
-  backlogCheckLatest: number;
 };
