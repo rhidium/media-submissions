@@ -8,6 +8,6 @@ services:
     env_file: .env
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=file:./production.db
+      - DATABASE_URL=file:/app/prisma/production.db
     volumes:
       - ./prisma/production.db:/app/prisma/production.db
