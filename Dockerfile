@@ -9,7 +9,7 @@ RUN npm install --frozen-lockfile --omit=dev
 
 FROM base AS build
 RUN npm install --frozen-lockfile
-RUN npm run build
+RUN DATABASE_URL=file:./prisma/production.db npm run build
 
 FROM base
 COPY --from=prod-deps /app/node_modules /app/node_modules
